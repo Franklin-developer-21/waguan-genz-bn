@@ -7,6 +7,8 @@ import dotenv from 'dotenv';
 import authRoutes from './routes/auth.route.js';
 import postRoutes from './routes/post.routes.js';
 import messageRoutes from './routes/message.route.js';
+import userRoutes from './routes/user.routes.js';
+import callRoutes from './routes/call.routes.js';
 import Post from './models/Post.js';
 import Message from './models/Message.js';
 
@@ -14,12 +16,22 @@ dotenv.config();
 
 const app = express();
 const server = createServer(app); // Fixed: Use createServer from 'http'
-const io = new Server(server);
+const io = new Server(server, {
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST'],
+    credentials: true
+  }
+});
 
 export { io }; // Export io to be used in other files
 
-app.use(cors());
-app.use(express.json());
+app.use(cors({
+  origin: '*',
+  credentials: true
+}));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('MongoDB connected'))
@@ -28,6 +40,8 @@ mongoose.connect(process.env.MONGO_URI)
 app.use('/api/auth', authRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/messages', messageRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/calls', callRoutes);
 
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
@@ -36,10 +50,8 @@ io.on('connection', (socket) => {
     socket.join(chatId);
   });
 
-  socket.on('sendMessage', async (data) => {
-    const message = new Message(data);
-    await message.save();
-    io.to(data.chatId).emit('receiveMessage', message);
+  socket.on('sendMessage', (data) => {
+    io.to(data.chatId).emit('receiveMessage', data);
   });
 
   socket.on('likePost', async ({ postId, userId }) => {
@@ -60,6 +72,22 @@ io.on('connection', (socket) => {
 
   socket.on('newPost', async (post) => {
     io.emit('newPost', post); // Broadcast new post to all clients
+  });
+
+  socket.on('callUser', ({ userToCall, signalData, from, name, callType }) => {
+    io.to(userToCall).emit('callUser', { signal: signalData, from, name, callType });
+  });
+
+  socket.on('answerCall', (data) => {
+    io.to(data.to).emit('callAccepted', data.signal);
+  });
+
+  socket.on('rejectCall', ({ to }) => {
+    io.to(to).emit('callRejected');
+  });
+
+  socket.on('endCall', ({ to }) => {
+    io.to(to).emit('callEnded');
   });
 
   socket.on('disconnect', () => {
