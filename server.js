@@ -46,8 +46,15 @@ app.use('/api/messages', messageRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/calls', callRoutes);
 
+const userSocketMap = new Map();
+
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
+
+  socket.on('userOnline', (userId) => {
+    userSocketMap.set(userId, socket.id);
+    console.log(`User ${userId} is online with socket ${socket.id}`);
+  });
 
   socket.on('joinChat', (chatId) => {
     socket.join(chatId);
@@ -78,7 +85,13 @@ io.on('connection', (socket) => {
   });
 
   socket.on('callUser', ({ userToCall, signalData, from, name, callType }) => {
-    io.to(userToCall).emit('callUser', { signal: signalData, from, name, callType });
+    const targetSocketId = userSocketMap.get(userToCall);
+    if (targetSocketId) {
+      io.to(targetSocketId).emit('callUser', { signal: signalData, from, name, callType });
+      console.log(`Call sent from ${from} to ${userToCall}`);
+    } else {
+      socket.emit('callFailed', { message: 'User is offline' });
+    }
   });
 
   socket.on('answerCall', (data) => {
@@ -95,6 +108,13 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', () => {
     console.log('User disconnected:', socket.id);
+    for (const [userId, socketId] of userSocketMap.entries()) {
+      if (socketId === socket.id) {
+        userSocketMap.delete(userId);
+        console.log(`User ${userId} went offline`);
+        break;
+      }
+    }
   });
 });
 
