@@ -11,6 +11,7 @@ import userRoutes from './routes/user.routes.js';
 import callRoutes from './routes/call.routes.js';
 import Post from './models/Post.js';
 import Message from './models/Message.js';
+import User from './models/User.js';
 
 dotenv.config();
 
@@ -95,22 +96,35 @@ io.on('connection', (socket) => {
   });
 
   socket.on('answerCall', (data) => {
-    io.to(data.to).emit('callAccepted', data.signal);
+    const callerSocketId = userSocketMap.get(data.to);
+    if (callerSocketId) {
+      io.to(callerSocketId).emit('callAccepted', data.signal);
+      console.log(`Call accepted by ${data.from || 'user'} to ${data.to}`);
+    }
   });
 
   socket.on('rejectCall', ({ to }) => {
-    io.to(to).emit('callRejected');
+    const callerSocketId = userSocketMap.get(to);
+    if (callerSocketId) {
+      io.to(callerSocketId).emit('callRejected');
+      console.log(`Call rejected to ${to}`);
+    }
   });
 
   socket.on('endCall', ({ to }) => {
-    io.to(to).emit('callEnded');
+    const targetSocketId = userSocketMap.get(to);
+    if (targetSocketId) {
+      io.to(targetSocketId).emit('callEnded');
+      console.log(`Call ended to ${to}`);
+    }
   });
 
-  socket.on('disconnect', () => {
+  socket.on('disconnect', async () => {
     console.log('User disconnected:', socket.id);
     for (const [userId, socketId] of userSocketMap.entries()) {
       if (socketId === socket.id) {
         userSocketMap.delete(userId);
+        await User.findByIdAndUpdate(userId, { isActive: false });
         console.log(`User ${userId} went offline`);
         break;
       }
