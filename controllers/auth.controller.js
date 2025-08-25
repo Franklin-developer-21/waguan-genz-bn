@@ -26,6 +26,10 @@ export const login = async (req, res) => {
     if (!user || !await bcrypt.compare(password, user.password)) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
+    
+    user.isActive = true;
+    await user.save();
+    
     const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
     res.json({ token, user: { id: user._id, username: user.username } });
   } catch (error) {
@@ -33,9 +37,15 @@ export const login = async (req, res) => {
   }
 };
 
-export const logout = (req, res) => {
-  // Client-side token removal; server is stateless
-  res.json({ message: 'Logged out successfully' });
+export const logout = async (req, res) => {
+  try {
+    if (req.userId) {
+      await User.findByIdAndUpdate(req.userId, { isActive: false });
+    }
+    res.json({ message: 'Logged out successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 };
 
 export const getProfile = async (req, res) => {
