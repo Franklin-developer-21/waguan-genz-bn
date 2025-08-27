@@ -1,5 +1,5 @@
 import express from 'express';
-import { createPost, getPosts, likePost, commentPost } from '../controllers/post.cotroller.js';
+import { createPost, getPosts, likePost, commentPost, replyComment } from '../controllers/post.cotroller.js';
 import jwt from 'jsonwebtoken';
 
 const router = express.Router();
@@ -20,5 +20,6 @@ router.post('/', authMiddleware, createPost);
 router.get('/', getPosts);
 router.post('/:id/like', authMiddleware, likePost);
 router.post('/:id/comment', authMiddleware, commentPost);
+router.post('/:postId/comment/:commentId/reply', authMiddleware, replyComment);
 
 export default router;
