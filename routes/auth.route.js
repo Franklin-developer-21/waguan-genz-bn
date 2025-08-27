@@ -1,5 +1,5 @@
 import express from 'express';
-import { register, login, logout, getProfile, forgotPassword, resetPassword } from '../controllers/auth.controller.js';
+import { register, login, logout, getProfile, forgotPassword, resetPassword, updateProfile } from '../controllers/auth.controller.js';
 import jwt from 'jsonwebtoken';
 
 const router = express.Router();
@@ -22,5 +22,6 @@ router.post('/logout', authMiddleware, logout);
 router.post('/forgot-password', forgotPassword);
 router.put('/reset-password/:token', resetPassword);
 router.get('/profile/:id', getProfile);
+router.put('/profile', authMiddleware, updateProfile);
 
 export default router;
