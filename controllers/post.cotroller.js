@@ -1,27 +1,21 @@
 import Post from '../models/Post.js';
-import cloudinary from '../config/cloudinary.js';
-import { io } from '../server.js'; // Import io if needed for emitting events
+import { cloudinaryUpload } from '../utils/cloudinary.js';
 
 export const createPost = async (req, res) => {
   try {
-    const { caption } = req.body;
-    const file = req.file;
-    if (!file) return res.status(400).json({ message: 'No file uploaded' });
+    const { caption, image } = req.body;
 
-    const result = await cloudinary.uploader.upload_stream({ resource_type: 'image' }, (error, result) => {
-      if (error) throw new Error(error);
-      return result;
-    }).end(file.buffer);
+    let cloudinaryResult = null;
+    if (image) {
+      cloudinaryResult = await cloudinaryUpload(image, "posts");
+    }
 
     const post = new Post({
       userId: req.userId,
-      imageUrl: result.secure_url,
+      imageUrl: cloudinaryResult?.secure_url || "",
       caption,
     });
     await post.save();
-
-    // Emit new post event
-    io.emit('newPost', post);
 
     res.status(201).json(post);
   } catch (error) {
