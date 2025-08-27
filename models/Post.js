@@ -7,10 +7,12 @@ const postSchema = new mongoose.Schema({
   likes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   comments: [{
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    username: { type: String },
     text: { type: String },
     timestamp: { type: Date, default: Date.now },
     replies: [{
       userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      username: { type: String },
       text: { type: String },
       timestamp: { type: Date, default: Date.now }
     }]

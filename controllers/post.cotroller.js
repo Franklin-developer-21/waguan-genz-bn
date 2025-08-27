@@ -1,4 +1,5 @@
 import Post from '../models/Post.js';
+import User from '../models/User.js';
 import { cloudinaryUpload } from '../utils/cloudinary.js';
 
 export const createPost = async (req, res) => {
@@ -51,7 +52,9 @@ export const commentPost = async (req, res) => {
     const { text } = req.body;
     const post = await Post.findById(req.params.id);
     if (!post) return res.status(404).json({ message: 'Post not found' });
-    post.comments.push({ userId: req.userId, text });
+    
+    const user = await User.findById(req.userId);
+    post.comments.push({ userId: req.userId, username: user.username, text });
     await post.save();
     res.json(post);
   } catch (error) {
