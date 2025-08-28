@@ -119,6 +119,37 @@ io.on('connection', (socket) => {
     }
   });
 
+  // WebRTC signaling events
+  socket.on('offer', (data) => {
+    const targetSocketId = userSocketMap.get(data.to);
+    if (targetSocketId) {
+      io.to(targetSocketId).emit('offer', {
+        offer: data.offer,
+        from: data.from
+      });
+    }
+  });
+
+  socket.on('answer', (data) => {
+    const targetSocketId = userSocketMap.get(data.to);
+    if (targetSocketId) {
+      io.to(targetSocketId).emit('answer', {
+        answer: data.answer,
+        from: data.from
+      });
+    }
+  });
+
+  socket.on('ice-candidate', (data) => {
+    const targetSocketId = userSocketMap.get(data.to);
+    if (targetSocketId) {
+      io.to(targetSocketId).emit('ice-candidate', {
+        candidate: data.candidate,
+        from: data.from
+      });
+    }
+  });
+
   socket.on('disconnect', async () => {
     console.log('User disconnected:', socket.id);
     for (const [userId, socketId] of userSocketMap.entries()) {
