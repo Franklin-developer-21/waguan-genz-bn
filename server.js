@@ -103,14 +103,13 @@ io.on('connection', (socket) => {
     }
   });
 
-socket.on('answerCall', (data) => {
-  const callerSocketId = userSocketMap.get(data.to);
-  if (callerSocketId) {
-    io.to(callerSocketId).emit('callAccepted'); // ✅ Remove data.signal
-    console.log(`Call accepted by ${data.from || 'user'} to ${data.to}`);
-  }
-});
-
+  socket.on('answerCall', (data) => {
+    const callerSocketId = userSocketMap.get(data.to);
+    if (callerSocketId) {
+      io.to(callerSocketId).emit('callAccepted', data.signal);
+      console.log(`Call accepted by ${data.from || 'user'} to ${data.to}`);
+    }
+  });
 
   socket.on('rejectCall', ({ to }) => {
     const callerSocketId = userSocketMap.get(to);
