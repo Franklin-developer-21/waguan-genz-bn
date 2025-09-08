@@ -85,23 +85,32 @@ io.on('connection', (socket) => {
     io.emit('newPost', post); // Broadcast new post to all clients
   });
 
-  socket.on('callUser', ({ userToCall, signalData, from, name, callType }) => {
+  socket.on('callUser', ({ userToCall, offer, from, name, callType }) => {
     const targetSocketId = userSocketMap.get(userToCall);
+    console.log(`CallUser event - From: ${from}, To: ${userToCall}, TargetSocket: ${targetSocketId}`);
     if (targetSocketId) {
-      io.to(targetSocketId).emit('callUser', { signal: signalData, from, name, callType });
-      console.log(`Call sent from ${from} to ${userToCall}`);
+      io.to(targetSocketId).emit('incomingCall', { 
+        offer, 
+        from, 
+        name, 
+        callType,
+        callerId: from
+      });
+      console.log(`Incoming call sent from ${from} to ${userToCall}`);
     } else {
       socket.emit('callFailed', { message: 'User is offline' });
+      console.log(`User ${userToCall} is offline`);
     }
   });
 
-  socket.on('answerCall', (data) => {
-    const callerSocketId = userSocketMap.get(data.to);
-    if (callerSocketId) {
-      io.to(callerSocketId).emit('callAccepted', data.signal);
-      console.log(`Call accepted by ${data.from || 'user'} to ${data.to}`);
-    }
-  });
+socket.on('answerCall', (data) => {
+  const callerSocketId = userSocketMap.get(data.to);
+  if (callerSocketId) {
+    io.to(callerSocketId).emit('callAccepted'); // ✅ Remove data.signal
+    console.log(`Call accepted by ${data.from || 'user'} to ${data.to}`);
+  }
+});
+
 
   socket.on('rejectCall', ({ to }) => {
     const callerSocketId = userSocketMap.get(to);
